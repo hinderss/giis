@@ -1,10 +1,10 @@
 from typing import Iterable
 
-from colors import BLACK, WHITE
+from colors import BLACK
 
 
 class Point:
-    def __init__(self, x, y, color: Iterable[int] = BLACK, debug: dict | None = None, instance=None):
+    def __init__(self, x, y, color: Iterable[int] = BLACK, debug: dict | None = None):
         self.x = x
         self.y = y
         self.color = tuple(color)

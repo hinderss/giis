@@ -118,7 +118,7 @@ class DrawerApp:
 
         self.draw_points(points)
         if self.debug_mode:
-            draw_pixel_figure(points)
+            draw_pixel_figure(points, "line")
 
     def draw_points(self, points):
         for x, y, color in points:
@@ -135,16 +135,16 @@ class DrawerApp:
 
         self.draw_points(points)
         if self.debug_mode:
-            draw_pixel_figure(points)
+            draw_pixel_figure(points, "ellipse", rx, ry)
 
     def draw_circle(self, a):
         x0, y0 = self.start_point
         points = bresenham_circle(x0, y0, a)
-        points = sort_points_clockwise(points)
+        # points = sort_points_clockwise(points)
 
         self.draw_points(points)
         if self.debug_mode:
-            draw_pixel_figure(points)
+            draw_pixel_figure(points, "circle", a)
 
     def draw_parabola(self, a):
         x0, y0 = self.start_point
@@ -152,12 +152,12 @@ class DrawerApp:
 
         self.draw_points(points)
         if self.debug_mode:
-            draw_pixel_figure(points)
+            draw_pixel_figure(points, "parabola", a)
 
     def draw_hyperbola(self, a, b):
         x0, y0 = self.start_point
-        points = bresenham_hyperbola(x0, y0, a, b, self.width)
+        points = bresenham_hyperbola(x0, y0, a, b, 10)
 
         self.draw_points(points)
         if self.debug_mode:
-            draw_pixel_figure(points)
+            draw_pixel_figure(points, "hyperbola", a, b)

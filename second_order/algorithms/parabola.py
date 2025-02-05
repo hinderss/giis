@@ -5,21 +5,6 @@ from point import Point
 
 def bresenham_parabola(x0, y0, a, b, c, x_limit, y_limit):
     points = []
-    # x = 0
-    # y = 0
-    # d = 0
-    #
-    # while y < x_limit:
-    #     points.append((x+x0, y+y0, BLACK))
-    #     points.append((-x+x0, y+y0, BLACK))
-    #     f1 = (d <= 0) or (2*(d-x)-1 <= 0)
-    #     f2 = (d >= 0) or (2*d + 1 > 0)
-    #
-    #     x = x + 1 if f1 else x
-    #     y = y + 1 if f2 else y
-    #
-    #     d = d + a*2*x + 1 if f1 else d
-    #     d = d - 1 if f2 else d
 
     div = 0.5 / a
     x, y = 0, 0
