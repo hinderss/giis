@@ -389,13 +389,13 @@ def bresenham_hyperbola(x0, y0, a, b, x_limit):
 - **B-сплайн** – гибкий метод построения кривых, который позволяет более плавно контролировать форму кривой за счет весовых коэффициентов.
 
 ## Скриншоты программы
-![image](screenshot.png)
+![image](https://github.com/user-attachments/assets/a733a317-94b2-49ec-b096-87aa0ffdb5b6)
+
 
 ## Листинг кода
 
-### Функции рисования:
+#### Рисование методом Эрмита:
 ```python
-# Пример кода для рисования кривых (дополнить в зависимости от реализации)
 def hermite_curve(points: tuple) -> list[Point]:
     p1, vend1, p4, vend4 = points
 
@@ -438,7 +438,10 @@ def hermite_curve(points: tuple) -> list[Point]:
             curve_points.append(point)
 
     return curve_points
+```
 
+#### Рисование методом Безье:
+```python
 def bezier_curve(control_points: list[tuple[int, int]], num_points: int = 1000) -> list[Point]:
     n = len(control_points) - 1
     points = []
@@ -461,7 +464,10 @@ def bezier_curve(control_points: list[tuple[int, int]], num_points: int = 1000) 
             }
             points.append(p)
     return points
+```
 
+#### Рисование методом B-сплайнов:
+```python
 def b_spline(control_points: list[tuple[int, int]], degree: int = 3, num_points: int = 1000) -> list[Point]:
     n = len(control_points) - 1
     m = n + degree + 1
