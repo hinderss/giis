@@ -2,14 +2,16 @@ import tkinter as tk
 from tkinter import simpledialog
 import math
 
+from colors import LIGHT_GRAY
 from game import draw_pixel_figure
 import line.algorithms as line
 import second_order.algorithms as second_order
+import curves.algorithms as curves
 from second_order.algorithms.circle import bresenham_circle
 from second_order.algorithms.ellipse import bresenham_ellipse
 from second_order.algorithms.hyperbola import bresenham_hyperbola
 from second_order.algorithms.parabola import bresenham_parabola
-from utils import sort_points_clockwise
+from utils import sort_points_clockwise, hex_color, Arrow
 
 
 class DrawerApp:
@@ -44,9 +46,17 @@ class DrawerApp:
         self.curve_menu.add_command(label="Ellipse", command=self.select_algorithm("Ellipse"))
 
         self.selected_algorithm_label = tk.Label(self.root, text="Selected Mode: DDA", bg="white")
-        self.selected_algorithm_label.pack(fill=tk.X)
 
-        self.debug_mode = False
+        # Add "Curves" menu
+        self.curve_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Кривые", menu=self.curve_menu)
+
+        self.curve_menu.add_command(label="Hermite", command=self.select_algorithm("Hermite"))
+        self.curve_menu.add_command(label="Bezier", command=self.select_algorithm("Bezier"))
+        self.curve_menu.add_command(label="B-spline", command=self.select_algorithm("B-spline"))
+
+        self.selected_algorithm_label = tk.Label(self.root, text="Selected Mode: DDA", bg="white")
+        self.selected_algorithm_label.pack(fill=tk.X)
 
         self.info_label = tk.Label(root, text="Кликните для задания центра фигуры")
         self.info_label.pack()
@@ -54,11 +64,28 @@ class DrawerApp:
         debug_button = tk.Button(root, text="Переключить режим отладки", command=self.toggle_debug_mode)
         debug_button.pack()
 
+        draw_button = tk.Button(root, text="Нарисовать", command=self.draw_curve)
+        draw_button.pack()
+        root.bind("<Return>", self.draw_curve)
+
+        clear_button = tk.Button(root, text="Очистить", command=self.clear)
+        clear_button.pack()
+
+        self.debug_mode = False
         self.algorithm = "DDA"
         self.start_point = None
         self.end_point = None
 
+        self.points = []
+
         self.canvas.bind("<Button-1>", self.on_left_click)
+
+    def clear(self):
+        self.canvas.delete("all")
+
+    def clear_debug(self):
+        if not self.debug_mode:
+            self.canvas.delete("debug")
 
     def toggle_debug_mode(self):
         self.debug_mode = not self.debug_mode
@@ -80,6 +107,19 @@ class DrawerApp:
     def on_left_click(self, event):
         if self.algorithm in second_order.algorithms.keys():
             self.start_point = (event.x, event.y)
+            self.get_second_order_parameters()
+        elif self.algorithm in curves.algorithms.keys():
+            width = 6
+            x, y = event.x, event.y
+            self.points.append((x, y))
+
+            self.canvas.create_oval(
+                x - 0.5 * width, y - 0.5 * width,
+                x + 0.5 * width, y + 0.5 * width,
+                fill=hex_color(LIGHT_GRAY),
+                outline="",
+                tags="debug",
+            )
             self.get_curve_parameters()
         elif self.start_point is None:
             self.start_point = (event.x, event.y)
@@ -89,7 +129,7 @@ class DrawerApp:
             self.start_point = None
             self.end_point = None
 
-    def get_curve_parameters(self):
+    def get_second_order_parameters(self):
         if self.algorithm == "Parabola":
             a = simpledialog.askfloat("Parabola", "Enter coefficient a (y = ax^2):")
             if a is not None:
@@ -109,6 +149,20 @@ class DrawerApp:
             if a is not None and b is not None:
                 self.draw_ellipse(a, b)
 
+    def get_curve_parameters(self):
+        if self.algorithm == "Hermite":
+            if len(self.points) in (2, 4):
+                start_idx = 0 if len(self.points) == 2 else 2
+                x1, y1 = self.points[start_idx]
+                x2, y2 = self.points[start_idx + 1]
+                Arrow(self.canvas).create(x1, y1, x2, y2, hex_color(LIGHT_GRAY))
+
+                if len(self.points) == 4:
+                    self.draw_curve()
+        else:
+            if len(self.points) >= 2:
+                self.canvas.create_line(*self.points[-2], self.points[-1], fill=hex_color(LIGHT_GRAY), tags="debug")
+
     def draw_line(self):
         x1, y1 = self.start_point
         x2, y2 = self.end_point
@@ -122,11 +176,7 @@ class DrawerApp:
 
     def draw_points(self, points):
         for x, y, color in points:
-            r, g, b = color
-            if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
-                raise ValueError("Цветовые значения должны быть в диапазоне от 0 до 255")
-            hex_color = f"#{r:02x}{g:02x}{b:02x}"
-            self.canvas.create_line(x, y, x + 1, y + 1, fill=hex_color)
+            self.canvas.create_line(x, y, x + 1, y + 1, fill=hex_color(color))
 
     def draw_ellipse(self, rx, ry):
         x0, y0 = self.start_point
@@ -161,3 +211,18 @@ class DrawerApp:
         self.draw_points(points)
         if self.debug_mode:
             draw_pixel_figure(points, "hyperbola", a, b)
+
+    def draw_curve(self, *args):
+        points = curves.algorithms[self.algorithm](self.points)
+        self.draw_points(points)
+        self.clear_debug()
+
+        debug = {
+            "Hermite": self.points,
+            "Bezier": self.points,
+            "B-spline": self.points,
+        }
+
+        if self.debug_mode:
+            draw_pixel_figure(points, self.algorithm, *debug[self.algorithm])
+        self.points = []

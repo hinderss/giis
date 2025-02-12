@@ -1,6 +1,7 @@
 import math
 
 import pygame
+from pygame import Surface
 
 from colors import RED
 from point import Point
@@ -9,11 +10,19 @@ from point import Point
 WIDTH = 800
 HEIGHT = 600
 
-def recalculate_points(points):
+
+def normalize_points_P(points: list[Point]) -> list[Point]:
     min_x = min(p.x for p in points)
     min_y = min(p.y for p in points)
 
     return [Point(p.x - min_x, p.y - min_y, p.color, p.debug) for p in points]
+
+
+def normalize_points(points: list[tuple[int, int]]):
+    min_x = min(x for x, y in points)
+    min_y = min(y for x, y in points)
+
+    return [(x - min_x, y - min_y) for x, y in points]
 
 
 def draw_line(surface, x1, y1, x2, y2, color=RED, thickness=1):
@@ -51,6 +60,49 @@ def draw_circle(surface, x0, y0, radius, color=RED, thickness=1):
     pygame.draw.circle(surface, color, (x0, y0), radius, thickness)
 
 
+def draw_debug_hermite(surface: Surface, x1, y1, x2, y2, x3, y3, x4, y4, start_x, start_y, end_x, end_y, pixel, color=RED, thickness=1):
+    x1, y1 = x1 * pixel, y1 * pixel
+    x2, y2 = x2 * pixel, y2 * pixel
+    x3, y3 = x3 * pixel, y3 * pixel
+    x4, y4 = x4 * pixel, y4 * pixel
+
+    points = [(x1, y1), (x2, y2)]
+    normalized_points = normalize_points(points)
+    x1, y1 = normalized_points[0]
+    x2, y2 = normalized_points[1]
+
+    points = [(x3, y3), (x4, y4)]
+    normalized_points = normalize_points(points)
+
+    x3, y3 = normalized_points[0]
+    x4, y4 = normalized_points[1]
+
+    x1, y1 = x1 + start_x, y1 + start_y
+    x2, y2 = x2 + start_x, y2 + start_y
+    x3, y3 = x3 + end_x, y3 + end_y
+    x4, y4 = x4 + end_x, y4 + end_y
+
+    pygame.draw.circle(surface, color, (x2, y2), 5)
+    pygame.draw.circle(surface, color, (x3, y3), 5)
+    pygame.draw.line(surface, color, (x1, y1), (x2, y2), thickness)
+    pygame.draw.line(surface, color, (x3, y3), (x4, y4), thickness)
+
+
+def draw_debug_bezier(surface: Surface, points, start_x, start_y, pixel, color=RED, thickness=1):
+    points = [(x * pixel, y * pixel) for x, y in points]
+
+    zero_x, zero_y = points[0]
+    zeroed_points = [(x - zero_x, y - zero_y) for x, y in points]
+
+    adjusted_points = [(x + start_x, y + start_y) for x, y in zeroed_points]
+
+    for p in adjusted_points:
+        x, y = p
+        pygame.draw.circle(surface, color, (x, y), 5)
+    for i in range(len(adjusted_points) - 1):
+        pygame.draw.line(surface, color, adjusted_points[i], adjusted_points[i + 1], thickness)
+
+
 def calculate_pixel_size(points, screen_width, screen_height):
     max_x = max(p.x for p in points)
     max_y = max(p.y for p in points)
@@ -73,7 +125,7 @@ def draw_pixel_figure(points: list[Point], figure="line", *args):
     clock = pygame.time.Clock()
     font = pygame.font.Font(None, 24)  # Шрифт для вывода текста
 
-    points = recalculate_points(points)
+    points = normalize_points_P(points)
 
     current_point_index = 0
 
@@ -135,12 +187,18 @@ def draw_pixel_figure(points: list[Point], figure="line", *args):
         mean_x = sum([point.x * pixel_size for point in points]) // len(points)
         mean_y = sum([point.y * pixel_size for point in points]) // len(points)
 
+        def bezier(*a):
+            draw_debug_bezier(screen, a, points[0].x * pixel_size + 0.5*pixel_size, points[0].y * pixel_size + 0.5*pixel_size, pixel_size)
+
         sample = {
             "line": lambda: draw_line(screen, points[0].x * pixel_size + 0.5*pixel_size, points[0].y * pixel_size + 0.5*pixel_size, points[-1].x * pixel_size + 0.5*pixel_size, points[-1].y * pixel_size + 0.5*pixel_size),
             "circle": lambda r: draw_circle(screen, mean_x + 0.5*pixel_size, mean_y + 0.5*pixel_size, r * pixel_size),
             "ellipse": lambda rx, ry: draw_ellipse(screen, mean_x + 0.5*pixel_size, mean_y + 0.5*pixel_size, rx * pixel_size, ry * pixel_size),
             "parabola": lambda a: draw_parabola(screen, mean_x + 0.5*pixel_size, min(p.y for p in points) + 0.5*pixel_size, a / pixel_size),
             "hyperbola": lambda a, b: draw_hyperbola(screen, mean_x + 0.5*pixel_size, mean_y + 0.5*pixel_size, a * pixel_size, b * pixel_size),
+            "Hermite": lambda point1, point2, point3, point4: draw_debug_hermite(screen, *point1, *point2, *point3, *point4, points[0].x * pixel_size + 0.5*pixel_size, points[0].y * pixel_size + 0.5*pixel_size, points[-1].x * pixel_size + 0.5*pixel_size, points[-1].y * pixel_size + 0.5*pixel_size, pixel_size),
+            "Bezier": bezier,
+            "B-spline": bezier,
         }
         sample[figure](*args)
 

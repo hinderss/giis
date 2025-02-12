@@ -238,10 +238,10 @@ def bresenham_circle(x0, y0, radius):
 
     def plot_circle_points(cx, cy, x, y, d=None):
         points.extend([
-            Point(cx + x, cy + y, debug={"x": cx + x, "y": cy + y, "d": f"{d} < 0"}), Point(cx - x, cy + y, debug={"x": cx - x, "y": cy + y, "d": f"{d} < 0"}),
-            Point(cx + x, cy - y, debug={"x": cx + x, "y": cy - y, "d": f"{d} < 0"}), Point(cx - x, cy - y, debug={"x": cx - x, "y": cy - y, "d": f"{d} < 0"}),
-            Point(cx + y, cy + x, debug={"x": cx + y, "y": cy + x, "d": f"{d} < 0"}), Point(cx - y, cy + x, debug={"x": cx - y, "y": cy + x, "d": f"{d} < 0"}),
-            Point(cx + y, cy - x, debug={"x": cx + y, "y": cy - x, "d": f"{d} < 0"}), Point(cx - y, cy - x, debug={"x": cx - y, "y": cy - x, "d": f"{d} < 0"}),
+            Point(cx + x, cy + y, debug_info), Point(cx - x, cy + y, debug_info),
+            Point(cx + x, cy - y, debug_info), Point(cx - x, cy - y, debug_info),
+            Point(cx + y, cy + x, debug_info), Point(cx - y, cy + x, debug_info),
+            Point(cx + y, cy - x, debug_info), Point(cx - y, cy - x, debug_info),
         ])
 
     plot_circle_points(x0, y0, x, y, d)
@@ -265,8 +265,8 @@ def bresenham_ellipse(x0, y0, rx, ry):
 
     def plot_ellipse_points(cx, cy, x, y, d=None, string=None):
         points.extend([
-            Point(cx + x, cy + y, debug={"x": cx + x, "y": cy + y, "d2": f"{d} {string}"}), Point(cx - x, cy + y, debug={"x": cx - x, "y": cy + y, "d2": f"{d} {string}"}),
-            Point(cx + x, cy - y, debug={"x": cx + x, "y": cy - y, "d2": f"{d} {string}"}), Point(cx - x, cy - y, debug={"x": cx - x, "y": cy - y, "d2": f"{d} {string}"})
+            Point(cx + x, cy + y, debug_info), Point(cx - x, cy + y, debug_info),
+            Point(cx + x, cy - y, debug_info), Point(cx - x, cy - y, debug_info)
         ])
 
     x, y = 0, ry
@@ -314,8 +314,8 @@ def bresenham_parabola(x0, y0, a, b, c, x_limit, y_limit):
     d_post = 1 - a * math.ceil(div) - 0.25 * a
 
     while x + x0 <= x_limit and y + y0 <= y_limit:
-        points.append(Point(x + x0, y + y0, debug={"x": x + x0, "y": y + y0, "d_pre": f"{d_pre:.3f} < 0", "d_post": f"{d_post:.3f} >= 0"}))
-        points.append(Point(-x + x0, y + y0, debug={"x": x + x0, "y": y + y0, "d_pre": f"{d_pre:.3f} < 0", "d_post": f"{d_post:.3f} >= 0"}))
+        points.append(Point(x + x0, y + y0, debug_info))
+        points.append(Point(-x + x0, y + y0, debug_info))
 
         if x < div:
             tmp = -2 * a * x - 3 * a
@@ -352,10 +352,10 @@ def bresenham_hyperbola(x0, y0, a, b, x_limit):
         f1 = (d <= 0) or (2 * d - b * (2 * x + 1) <= 0)
         f2 = (d <= 0) or (2 * d - a * (2 * y + 1) > 0)
 
-        points.append(Point(x0 - x, y0 - y, debug={"x": x0-x, "y": y0-y, "F1": f1, "F2": f2}))
-        points.append(Point(x0 + x, y0 + y, debug={"x": x0-x, "y": y0-y, "F1": f1, "F2": f2}))
-        points.append(Point(x0 + x, y0 - y, debug={"x": x0-x, "y": y0-y, "F1": f1, "F2": f2}))
-        points.append(Point(x0 - x, y0 + y, debug={"x": x0-x, "y": y0-y, "F1": f1, "F2": f2}))
+        points.append(Point(x0 - x, y0 - y, debug_info))
+        points.append(Point(x0 + x, y0 + y, debug_info))
+        points.append(Point(x0 + x, y0 - y, debug_info))
+        points.append(Point(x0 - x, y0 + y, debug_info))
 
         x = x + 1 if f1 else x
         y = y + 1 if f2 else y
@@ -369,5 +369,137 @@ def bresenham_hyperbola(x0, y0, a, b, x_limit):
 ### Выводы:  
 В ходе лабораторной работы студенты изучат основные алгоритмы построения кривых второго порядка, проанализируют их эффективность и особенности, а также реализуют графический редактор с возможностью визуализации процесса построения.  
 
+</details>
+
+# Лабораторная работа №3
+<details>  
+  <summary>Раскрыть описание лабораторной работы</summary>  
+
+## Алгоритмы построения линий второго порядка
+
+### Цель работы
+Разработать элементарный графический редактор, реализующий построение параметрических кривых, используя форму Эрмита, форму Безье и B-сплайн.
+
+### Задание
+Создать графический редактор с возможностью выбора метода построения кривых через меню и панель инструментов "Кривые". Обеспечить режим корректировки опорных точек и состыковки сегментов. Включить в программу базовые функции матричных вычислений.
+
+### Основные теоретические сведения
+- **Кривая Эрмита** – метод построения кривых, использующий начальные и конечные точки, а также касательные в этих точках.
+- **Кривая Безье** – параметрическая кривая, определяемая опорными точками, с использованием полиномиальных функций.
+- **B-сплайн** – гибкий метод построения кривых, который позволяет более плавно контролировать форму кривой за счет весовых коэффициентов.
+
+## Скриншоты программы
+![image](screenshot.png)
+
+## Листинг кода
+
+### Функции рисования:
+```python
+# Пример кода для рисования кривых (дополнить в зависимости от реализации)
+def hermite_curve(points: tuple) -> list[Point]:
+    p1, vend1, p4, vend4 = points
+
+    r1 = (vend1[0] - p1[0], vend1[1] - p1[1])
+    r4 = (vend4[0] - p4[0], vend4[1] - p4[1])
+
+    P1 = np.array(p1)
+    P4 = np.array(p4)
+    R1 = np.array(r1)
+    R4 = np.array(r4)
+
+    hermite_matrix = np.array([
+        [2, -2, 1, 1],
+        [-3, 3, -2, -1],
+        [0, 0, 1, 0],
+        [1, 0, 0, 0]
+    ])
+
+    parameter_matrix = np.array([P1, P4, R1, R4])
+
+    coefficients = np.dot(hermite_matrix, parameter_matrix)
+
+    curve_points = []
+    for t in np.linspace(0, 1, 1000):
+        T = np.array([t**3, t**2, t, 1])
+        x, y = np.dot(T, coefficients)
+        point = Point(round(x), round(y))
+        if point not in curve_points:
+            matrix_dict = {
+                "t3": f"{t ** 3:.3f}",
+                "t2": f"{t ** 2:.3f}",
+                "t1": f"{t:.3f}",
+                "1": "1",
+                "": "*",
+            }
+            max_len = max(len(str(int(coefficients[i, 0]))) for i in range(coefficients.shape[0]))
+            for i in range(coefficients.shape[0]):
+                matrix_dict[str(int(coefficients[i, 0])).zfill(max_len)] = str(int(coefficients[i, 1])).zfill(max_len)
+            point.debug = matrix_dict
+            curve_points.append(point)
+
+    return curve_points
+
+def bezier_curve(control_points: list[tuple[int, int]], num_points: int = 1000) -> list[Point]:
+    n = len(control_points) - 1
+    points = []
+    for i in range(num_points):
+        t = i / (num_points - 1)
+        x, y = 0, 0
+        for j, point in enumerate(control_points):
+            point_x, point_y = point
+            binom = 1
+            for k in range(1, j + 1):
+                binom *= (n - k + 1) / k
+            x += binom * (1 - t)**(n - j) * t**j * point_x
+            y += binom * (1 - t)**(n - j) * t**j * point_y
+        p = Point(round(x), round(y))
+        if p not in points:
+            p.debug = {
+                "t": f"{t:.3f}",
+                "x": f"{p.x:.3f}",
+                "y": f"{p.y:.3f}",
+            }
+            points.append(p)
+    return points
+
+def b_spline(control_points: list[tuple[int, int]], degree: int = 3, num_points: int = 1000) -> list[Point]:
+    n = len(control_points) - 1
+    m = n + degree + 1
+
+    knots = [0] * (degree + 1) + list(range(1, m - 2 * degree)) + [m - 2 * degree] * (degree + 1)
+
+    def basis_function(i, k, t):
+        if k == 0:
+            return 1 if knots[i] <= t < knots[i + 1] else 0
+        c1 = (t - knots[i]) / (knots[i + k] - knots[i]) * basis_function(i, k - 1, t) if knots[i + k] != knots[i] else 0
+        c2 = (knots[i + k + 1] - t) / (knots[i + k + 1] - knots[i + 1]) * basis_function(i + 1, k - 1, t) if knots[i + k + 1] != knots[i + 1] else 0
+        return c1 + c2
+
+    points = []
+    for i in range(num_points):
+        t = knots[degree] + (knots[-degree - 1] - knots[degree]) * i / (num_points - 1)
+        x, y = 0, 0
+        for j in range(n + 1):
+            b = basis_function(j, degree, t)
+            point_x, point_y = control_points[j]
+            x += point_x * b
+            y += point_y * b
+        p = Point(round(x), round(y))
+        if p not in points and p != Point(0, 0):
+            p.debug = {
+                "t": f"{t:.3f}",
+                "x": f"{p.x:.3f}",
+                "y": f"{p.y:.3f}",
+            }
+            points.append(p)
+
+    return points[1:]
+```
+
+## Выводы
+Разработанный графический редактор успешно реализует построение параметрических кривых Эрмита, Безье и B-сплайнов. Добавлена возможность корректировки опорных точек и состыковки сегментов. Реализованы базовые функции матричных вычислений для работы с кривыми.
+
+
 
 </details>
+
