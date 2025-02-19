@@ -527,11 +527,14 @@ def b_spline(control_points: list[tuple[int, int]], degree: int = 3, num_points:
 - Матрицы преобразования — это инструменты, используемые для осуществления различных геометрических изменений объектов в пространстве.
 
 ## Скриншоты программы
-!image (https://github.com/user-attachments/assets/a733a317-94b2-49ec-b096-87aa0ffdb5b6)
+![image](https://github.com/user-attachments/assets/e4c384c0-d05a-4d33-a2a1-39856e36ffa2)
+
 
 ## Листинг кода
 
-### Рисование методом Эрмита
+### Матрицы преобразования
+```python
+#перемещение
 def translation_matrix(self, tx, ty, tz):
     return np.array([
         [1, 0, 0, tx],
@@ -540,6 +543,7 @@ def translation_matrix(self, tx, ty, tz):
         [0, 0, 0, 1]
     ])
 
+#изменение размера
 def scale_matrix(self, sx, sy, sz):
     return np.array([
         [sx, 0, 0, 0],
@@ -548,6 +552,7 @@ def scale_matrix(self, sx, sy, sz):
         [0, 0, 0, 1]
     ])
 
+#поворот по y
 def rotation_matrix_y(self, angle):
     c, s = np.cos(angle), np.sin(angle)
     return np.array([
@@ -557,6 +562,7 @@ def rotation_matrix_y(self, angle):
         [0, 0, 0, 1]
     ])
 
+#поворот по z
 def rotation_matrix_z(self, angle):
     c, s = np.cos(angle), np.sin(angle)
     return np.array([
@@ -566,6 +572,7 @@ def rotation_matrix_z(self, angle):
         [0, 0, 0, 1]
     ])
 
+#поворот по x
 def rotation_matrix_x(self, angle):
     c, s = np.cos(angle), np.sin(angle)
     return np.array([
@@ -575,6 +582,7 @@ def rotation_matrix_x(self, angle):
         [0, 0, 0, 1]
     ])
 
+#изменение перспективы
 def perspective_matrix(self, d):
     return np.array([
         [1, 0, 0, 0],
