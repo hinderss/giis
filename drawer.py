@@ -1,6 +1,8 @@
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, filedialog
 import math
+
+import pygame
 
 from colors import LIGHT_GRAY
 from game import draw_pixel_figure
@@ -11,6 +13,7 @@ from second_order.algorithms.circle import bresenham_circle
 from second_order.algorithms.ellipse import bresenham_ellipse
 from second_order.algorithms.hyperbola import bresenham_hyperbola
 from second_order.algorithms.parabola import bresenham_parabola
+from d3d import ObjectViewer
 from utils import sort_points_clockwise, hex_color, Arrow
 
 
@@ -51,6 +54,11 @@ class DrawerApp:
         self.curve_menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label="Кривые", menu=self.curve_menu)
 
+        # Add "3D" menu
+        self.D3D_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="3D", menu=self.D3D_menu)
+        self.D3D_menu.add_command(label="Запустить 3D пространство", command=self.D3D)
+
         self.curve_menu.add_command(label="Hermite", command=self.select_algorithm("Hermite"))
         self.curve_menu.add_command(label="Bezier", command=self.select_algorithm("Bezier"))
         self.curve_menu.add_command(label="B-spline", command=self.select_algorithm("B-spline"))
@@ -79,6 +87,24 @@ class DrawerApp:
         self.points = []
 
         self.canvas.bind("<Button-1>", self.on_left_click)
+
+    @staticmethod
+    def open_file():
+        file_path = filedialog.askopenfilename(
+            title="Выберите файл",
+            filetypes=[("Все файлы", "*.*"), ("Текстовые файлы", "*.txt"), ("Изображения", "*.jpg;*.png")]
+        )
+        if file_path:
+            return file_path
+
+    def D3D(self):
+        file = self.open_file()
+        # Инициализация Pygame
+        pygame.init()
+
+        # Запуск программы
+        viewer = ObjectViewer(file)
+        viewer.run()
 
     def clear(self):
         self.canvas.delete("all")
