@@ -590,6 +590,7 @@ def perspective_matrix(self, d):
         [0, 0, 1, 0],
         [0, 0, -1 / d, 1]
     ])
+```
 
 
 ## Выводы
