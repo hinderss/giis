@@ -1,11 +1,12 @@
 import math
 
+from point import Point
+
 
 def sort_points_clockwise(points):
     points = list(set(points))
     center_x = sum(x for x, y, _ in points) / len(points)
     center_y = sum(y for x, y, _ in points) / len(points)
-    center = (center_x, center_y)
 
     def calculate_angle(point):
         x, y, _ = point
@@ -59,3 +60,7 @@ class Arrow:
         self.arrowhead = self.canvas.create_polygon(
             self.x2, self.y2, x3, y3, x4, y4, fill=self.color, outline=self.color, tags="debug",
         )
+
+
+def cross_product(a: Point, b: Point, c: Point):
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)

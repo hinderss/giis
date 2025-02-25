@@ -5,10 +5,12 @@ import math
 import pygame
 
 from colors import LIGHT_GRAY
+from convex_hull.polygon import Polygon, ConvexHull
 from game import draw_pixel_figure
 import line.algorithms as line
 import second_order.algorithms as second_order
 import curves.algorithms as curves
+from line.line import Line
 from second_order.algorithms.circle import bresenham_circle
 from second_order.algorithms.ellipse import bresenham_ellipse
 from second_order.algorithms.hyperbola import bresenham_hyperbola
@@ -20,7 +22,7 @@ from utils import sort_points_clockwise, hex_color, Arrow
 class DrawerApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Line and Curve Drawer App")
+        self.root.title("Drawer App")
 
         self.width = 800
         self.height = 600
@@ -88,6 +90,83 @@ class DrawerApp:
 
         self.canvas.bind("<Button-1>", self.on_left_click)
 
+        self.polygon_points = []
+        self.polygons = []
+        self.polygon: Polygon | None = None
+        self.line = None
+        self.polygon_mode = False
+        self.line_polygon_intersection_mode = False
+        self.point_in_poly_mode = False
+
+        self.poly_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Полигоны", menu=self.poly_menu)
+        self.poly_menu.add_command(label="Нарисовать полигон", command=self.toggle_polygon_mode)
+        self.poly_menu.add_command(label="Проверить выпуклость", command=self.check_convexity)
+        self.poly_menu.add_command(label="Построить полигон", command=self.build_polygon)
+        self.poly_menu.add_command(label="Построить выпуклую оболочку методом Jarvis", command=self.build_jarvis)
+        self.poly_menu.add_command(label="Построить выпуклую оболочку методом Graham", command=self.build_graham)
+        self.poly_menu.add_command(label="Проверить линию", command=self.toggle_line_polygon_intersection)
+        self.poly_menu.add_command(label="Проверить точку", command=self.toggle_point_in_poly_mode)
+
+    def toggle_polygon_mode(self):
+        self.polygon_mode = not self.polygon_mode
+        if self.polygon_mode:
+            self.selected_algorithm_label.config(text="Режим рисования полигона.")
+            self.info_label.config(text="Кликните для задания точек.")
+
+    def toggle_point_in_poly_mode(self):
+        self.point_in_poly_mode = not self.point_in_poly_mode
+        if self.point_in_poly_mode:
+            self.selected_algorithm_label.config(text="Пренадлежность точки полигону.")
+            self.info_label.config(text="Кликните для задания точки.")
+
+    def toggle_line_polygon_intersection(self):
+        self.polygon_mode = False
+        self.line_polygon_intersection_mode = True
+        self.start_point = None
+        self.end_point = None
+        self.selected_algorithm_label.config(text="Пересекает ли линия последний полигон.")
+        self.info_label.config(text="Нарисуйте линию одним из алгоритмов")
+
+    def check_convexity(self):
+        result = self.polygon.is_convex()
+        if result:
+            self.info_label.config(text="Полигон выпуклый.")
+            return
+        else:
+            self.info_label.config(text="Полигон не выпуклый.")
+            return
+
+    def build_polygon(self):
+        if len(self.polygon_points) < 3:
+            self.info_label.config(text="Полигон должен иметь хотя бы 3 вершины.")
+            return
+
+        poly = Polygon(self.polygon_points)
+        self.polygons.append(poly)
+        self.polygon = poly
+        poly.draw(self.canvas)
+        self.polygon_points.clear()
+        self.start_point = None
+
+    def build_jarvis(self):
+        self.build_convex_hull("Jarvis")
+
+    def build_graham(self):
+        self.build_convex_hull("Graham")
+
+    def build_convex_hull(self, algorithm):
+        if len(self.polygon_points) < 3:
+            self.info_label.config(text="Полигон должен иметь хотя бы 3 вершины.")
+            return
+
+        poly = ConvexHull(self.polygon_points, algorithm=algorithm)
+        self.polygons.append(poly)
+        self.polygon = poly
+        poly.draw(self.canvas)
+        self.polygon_points.clear()
+        self.start_point = None
+
     @staticmethod
     def open_file():
         file_path = filedialog.askopenfilename(
@@ -99,10 +178,8 @@ class DrawerApp:
 
     def D3D(self):
         file = self.open_file()
-        # Инициализация Pygame
         pygame.init()
 
-        # Запуск программы
         viewer = ObjectViewer(file)
         viewer.run()
 
@@ -131,7 +208,29 @@ class DrawerApp:
         self.selected_algorithm_label.config(text=f"Selected Mode: {self.algorithm}")
 
     def on_left_click(self, event):
-        if self.algorithm in second_order.algorithms.keys():
+        if self.polygon_mode:
+            x, y = event.x, event.y
+            self.polygon_points.append((x, y))
+            self.canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="black")
+        elif self.point_in_poly_mode:
+            width = 6
+            x, y = event.x, event.y
+
+            self.canvas.create_oval(
+                x - 0.5 * width, y - 0.5 * width,
+                x + 0.5 * width, y + 0.5 * width,
+                fill=hex_color(LIGHT_GRAY),
+                outline="",
+                tags="debug",
+            )
+            result = self.polygon.point_in_polygon(x, y)
+            if result:
+                self.info_label.config(text="Точка пренадлежит полигону.")
+                return
+            else:
+                self.info_label.config(text="Точка не пренадлежит полигону.")
+                return
+        elif self.algorithm in second_order.algorithms.keys():
             self.start_point = (event.x, event.y)
             self.get_second_order_parameters()
         elif self.algorithm in curves.algorithms.keys():
@@ -152,6 +251,8 @@ class DrawerApp:
         else:
             self.end_point = (event.x, event.y)
             self.draw_line()
+            if self.line_polygon_intersection_mode:
+                self.info_label.config(text="Пересекает.") if self.polygon.line_polygon_intersection(*self.line) else self.info_label.config(text="Не пересекает.")
             self.start_point = None
             self.end_point = None
 
@@ -197,6 +298,7 @@ class DrawerApp:
         points = sorted(points, key=lambda point: math.sqrt(point.x ** 2 + point.y ** 2))
 
         self.draw_points(points)
+        self.line = Line(self.start_point, self.end_point)
         if self.debug_mode:
             draw_pixel_figure(points, "line")
 
@@ -239,6 +341,9 @@ class DrawerApp:
             draw_pixel_figure(points, "hyperbola", a, b)
 
     def draw_curve(self, *args):
+        if self.polygon_mode:
+            self.build_polygon()
+            return
         points = curves.algorithms[self.algorithm](self.points)
         self.draw_points(points)
         self.clear_debug()
