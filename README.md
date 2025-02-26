@@ -619,7 +619,8 @@ def perspective_matrix(self, d):
 Для определения принадлежности точки полигону используется алгоритм, основанный на подсчете количества пересечений луча, исходящего из точки, с границами полигона. Если количество пересечений нечетное, то точка находится внутри полигона.
 
 ## Скриншоты программы
-![image](https://github.com/user-attachments/assets/e4c384c0-d05a-4d33-a2a1-39856e36ffa2)
+![image](https://github.com/user-attachments/assets/bdd5485a-01be-4527-8466-db0117f3eed9)
+
 
 ## Листинг кода
 
@@ -760,7 +761,8 @@ def graham_convex_hull(points: list[(int, int)]):
 Режим отладки позволяет визуализировать пошаговое выполнение алгоритмов, что помогает понять их работу и выявить возможные ошибки.
 
 ## Скриншоты программы
-![image](https://github.com/user-attachments/assets/e4c384c0-d05a-4d33-a2a1-39856e36ffa2)
+![image](https://github.com/user-attachments/assets/b5ef5245-6331-4c95-85fa-e2e5e793d1d7)
+
 
 ## Листинг кода
 
