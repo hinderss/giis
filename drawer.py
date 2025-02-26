@@ -107,6 +107,38 @@ class DrawerApp:
         self.poly_menu.add_command(label="Построить выпуклую оболочку методом Graham", command=self.build_graham)
         self.poly_menu.add_command(label="Проверить линию", command=self.toggle_line_polygon_intersection)
         self.poly_menu.add_command(label="Проверить точку", command=self.toggle_point_in_poly_mode)
+        self.poly_menu.add_command(label="Проверить точку", command=self.toggle_point_in_poly_mode)
+
+        # Add "Polygon Fill Algorithms" menu
+        self.fill_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Алгоритмы заполнения", menu=self.fill_menu)
+
+        self.fill_menu.add_command(label="Scanline Fill", command=self.select_fill_algorithm("Scanline"))
+        self.fill_menu.add_command(label="Active Edge List", command=self.select_fill_algorithm("ActiveEdge"))
+        self.fill_menu.add_command(label="Flood Fill", command=self.select_fill_algorithm("Flood"))
+        self.fill_menu.add_command(label="Scanline Flood Fill", command=self.select_fill_algorithm("ScanlineFlood"))
+
+        self.selected_fill_algorithm = None
+        # self.selected_fill_algorithm_label = tk.Label(self.root, text="Selected Fill Algorithm: Scanline", bg="white")
+        # self.selected_fill_algorithm_label.pack(fill=tk.X)
+        print(self.canvas.winfo_width())
+
+    def select_fill_algorithm(self, algorithm):
+        return lambda: self.set_fill_algorithm(algorithm)
+
+    def set_fill_algorithm(self, algorithm):
+        self.selected_fill_algorithm = algorithm
+        if self.selected_fill_algorithm == "Scanline":
+            points = self.polygon.scanline_fill()
+            self.draw_points(points)
+            if self.debug_mode:
+                draw_pixel_figure(points, "poly", self.polygon)
+        if self.selected_fill_algorithm == "ActiveEdge":
+            points = self.polygon.active_edge_fill()
+            self.draw_points(points)
+            if self.debug_mode:
+                draw_pixel_figure(points, "poly", self.polygon)
+        self.selected_algorithm_label.config(text=f"Selected Fill Algorithm: {algorithm}")
 
     def toggle_polygon_mode(self):
         self.polygon_mode = not self.polygon_mode
@@ -208,7 +240,19 @@ class DrawerApp:
         self.selected_algorithm_label.config(text=f"Selected Mode: {self.algorithm}")
 
     def on_left_click(self, event):
-        if self.polygon_mode:
+        if self.selected_fill_algorithm == "Flood":
+            points = self.polygon.flood_fill(event.x, event.y)
+            self.selected_fill_algorithm = None
+            self.draw_points(points)
+            if self.debug_mode:
+                draw_pixel_figure(points, "poly", self.polygon)
+        elif self.selected_fill_algorithm == "ScanlineFlood":
+            points = self.polygon.scanline_flood_fill(event.x, event.y, self.width, self.height)
+            self.selected_fill_algorithm = None
+            self.draw_points(points)
+            if self.debug_mode:
+                draw_pixel_figure(points, "poly", self.polygon)
+        elif self.polygon_mode:
             x, y = event.x, event.y
             self.polygon_points.append((x, y))
             self.canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="black")

@@ -4,6 +4,7 @@ import pygame
 from pygame import Surface
 
 from colors import RED
+from convex_hull.polygon import Polygon
 from point import Point
 
 
@@ -103,6 +104,14 @@ def draw_debug_bezier(surface: Surface, points, start_x, start_y, pixel, color=R
         pygame.draw.line(surface, color, adjusted_points[i], adjusted_points[i + 1], thickness)
 
 
+def draw_poly(surface: Surface, poly: Polygon, p_size, color=RED, thickness=1):
+    poly.points = normalize_points_P(poly.points)
+    for point1, point2 in poly:
+        x1, y1, _ = point1
+        x2, y2, _ = point2
+        pygame.draw.line(surface, color, (x1*p_size - 0.5*p_size, y1*p_size - 0.5*p_size), (x2*p_size - 0.5*p_size, y2*p_size - 0.5*p_size), thickness)
+
+
 def calculate_pixel_size(points, screen_width, screen_height):
     max_x = max(p.x for p in points)
     max_y = max(p.y for p in points)
@@ -199,6 +208,7 @@ def draw_pixel_figure(points: list[Point], figure="line", *args):
             "Hermite": lambda point1, point2, point3, point4: draw_debug_hermite(screen, *point1, *point2, *point3, *point4, points[0].x * pixel_size + 0.5*pixel_size, points[0].y * pixel_size + 0.5*pixel_size, points[-1].x * pixel_size + 0.5*pixel_size, points[-1].y * pixel_size + 0.5*pixel_size, pixel_size),
             "Bezier": bezier,
             "B-spline": bezier,
+            "poly": lambda poly: draw_poly(screen, poly, pixel_size),
         }
         sample[figure](*args)
 

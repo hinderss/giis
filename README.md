@@ -517,7 +517,7 @@ def b_spline(control_points: list[tuple[int, int]], degree: int = 3, num_points:
 Разработка базового графического редактора с возможностью выполнения различных геометрических преобразований на трехмерных объектах с использованием матричных операций.
 
 ## Цель работы
-Целью данной лабораторной работы является изучение методов представления и преобразования трехмерных объектов в графическом редакторе. Необходимо освоить использование матриц для выполнения определенных преобразований, а также разобраться в параметрических кривых, таких как форма Эрмита, Безье и B-сплайн.
+Целью данной лабораторной работы является изучение методов представления и преобразования трехмерных объектов в графическом редакторе. 
 
 ## Задание
 Разработать графическую программу, выполняющую следующие геометрические преобразования над трехмерным объектом: перемещение, поворот, скалирование, отображение, перспектива. В программе должно быть предусмотрено считывание координат 3D объекта из текстового файла, обработка клавиатуры и выполнение геометрических преобразований в зависимости от нажатых клавиш. Все преобразования следует производить с использованием матричного аппарата и представления координат в однородных координатах.
@@ -598,3 +598,309 @@ def perspective_matrix(self, d):
 
 </details>
 
+# Лабораторная работа №5
+
+<details>  
+  <summary>Раскрыть описание лабораторной работы</summary>  
+
+## Цель работы
+Целью данной лабораторной работы является разработка элементарного графического редактора, который позволяет выполнять геометрические преобразования на полигонах, проверять их на выпуклость, находить внутренние нормали, строить выпуклые оболочки различными методами, а также определять точки пересечения отрезков и принадлежность точек полигонам.
+
+## Задание
+Разработать элементарный графический редактор, реализующий построение полигонов. Реализованная программа должна уметь проверять полигон на выпуклость, находить его внутренние нормали. Программа должна выполнять построение выпуклых оболочек методом обхода Грэхема и методом Джарвиса. Выбор метода задается из пункта меню и должен быть доступен через панель инструментов «Построение полигонов». Графический редактор должен позволять рисовать линии первого порядка (лабораторная работа №1) и определять точки пересечения отрезка со стороной полигона, также программа должна определять принадлежность введенной точки полигону.
+
+## Основные теоретические сведения
+Для проверки полигона на выпуклость используется алгоритм, основанный на определении направления поворота для каждой тройки последовательных вершин полигона. Если все тройки вершин имеют одинаковое направление поворота, то полигон является выпуклым.
+
+Для построения выпуклых оболочек используются два метода:
+- **Метод обхода Грэхема**: алгоритм, который строит выпуклую оболочку, обходя точки в порядке увеличения угла относительно начальной точки.
+- **Метод Джарвиса**: алгоритм, который строит выпуклую оболочку, последовательно находя точки с наименьшим углом относительно предыдущей точки.
+
+Для определения принадлежности точки полигону используется алгоритм, основанный на подсчете количества пересечений луча, исходящего из точки, с границами полигона. Если количество пересечений нечетное, то точка находится внутри полигона.
+
+## Скриншоты программы
+![image](https://github.com/user-attachments/assets/e4c384c0-d05a-4d33-a2a1-39856e36ffa2)
+
+## Листинг кода
+
+### Проверка принадлежности точки полигону
+```python
+def point_in_polygon(self, x, y):
+    inside = False
+    for point1, point2 in self:
+        x1, y1, _ = point1
+        x2, y2, _ = point2
+        if y > min(y1, y2):
+            if y <= max(y1, y2):
+                if x <= max(x1, x2):
+                    if y1 != y2:
+                        xinters = (y - y1) * (x2 - x1) / (y2 - y1) + x1
+                    if y1 == y2 or x <= xinters:
+                        inside = not inside
+    return inside
+```
+
+### Определение пересечения отрезка с полигоном
+```python
+def line_polygon_intersection(self, line_start: Point, line_end: Point):
+    intersections = []
+    for point1, point2 in self:
+        intersection = line_intersection(line_start, line_end, point1, point2)
+        if intersection:
+            intersections.append(intersection)
+    return intersections
+```
+
+### Проверка полигона на выпуклость
+```python
+def is_convex(self) -> bool:
+    if len(self.points) < 3:
+        raise Exception("Полигон должен иметь хотя бы 3 вершины.")
+
+    n = len(self.points)
+    if n == 3:
+        return True
+
+    sign = 0
+    for i in range(n):
+        a = self.points[i]
+        b = self.points[(i + 1) % n]
+        c = self.points[(i + 2) % n]
+        cp = cross_product(a, b, c)
+        if cp == 0:
+            continue
+        if sign == 0:
+            sign = 1 if cp > 0 else -1
+        elif (cp > 0 and sign == -1) or (cp < 0 and sign == 1):
+            return False
+    return True
+```
+
+### Построение выпуклой оболочки методом Джарвиса
+```python
+def jarvis_convex_hull(points: list[(int, int)]) -> list[Point]:
+    n = len(points)
+    if n < 3:
+        return points
+
+    hull = []
+    l = min(range(n), key=lambda i: points[i][0])
+    p = l
+    while True:
+        hull.append(Point(*points[p]))
+        q = (p + 1) % n
+        for i in range(n):
+            if i == p:
+                continue
+            val = (points[i][1] - points[p][1]) * (points[q][0] - points[p][0]) - (points[q][1] - points[p][1]) * (points[i][0] - points[p][0])
+            if val < 0:
+                q = i
+        p = q
+        if p == l:
+            break
+    return hull
+```
+
+### Построение выпуклой оболочки методом Грэхема
+```python
+def graham_convex_hull(points: list[(int, int)]):
+    points = sorted([Point(*point) for point in points], key=lambda point: (point.x, point.y))
+    lower = []
+    for p in points:
+        while len(lower) >= 2 and cross_product(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(Point(*p))
+    upper = []
+    for p in reversed(points):
+        while len(upper) >= 2 and cross_product(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(Point(*p))
+    return lower[:-1] + upper[:-1]
+```
+
+## Выводы
+В ходе выполнения лабораторной работы был разработан элементарный графический редактор, который позволяет выполнять различные геометрические преобразования на полигонах. Программа успешно проверяет полигоны на выпуклость, находит внутренние нормали, строит выпуклые оболочки методами Грэхема и Джарвиса, а также определяет точки пересечения отрезков и принадлежность точек полигонам. Реализованные алгоритмы работают корректно и позволяют эффективно решать поставленные задачи.
+
+</details>
+
+# Лабораторная работа №6
+
+<details>  
+  <summary>Раскрыть описание лабораторной работы</summary>
+
+## Цель работы
+Целью данной лабораторной работы является разработка элементарного графического редактора, который позволяет выполнять построение полигонов и их заполнение с использованием различных алгоритмов растровой развертки и заполнения с затравкой. Программа должна поддерживать режим отладки для визуализации пошагового выполнения алгоритмов.
+
+## Задание
+Разработать элементарный графический редактор, реализующий построение полигонов и их заполнение, используя:
+1. **Алгоритм растровой развертки с упорядоченным списком ребер**.
+2. **Алгоритм растровой развертки с использованием списка активных ребер**.
+3. **Простой алгоритм заполнения с затравкой**.
+4. **Построчный алгоритм заполнения с затравкой**.
+
+Выбор алгоритма должен задаваться из пункта меню и быть доступен через панель инструментов «Алгоритмы заполнения полигонов». В редакторе должен быть предусмотрен режим отладки, где отображается пошаговое решение.
+
+## Основные теоретические сведения
+### Алгоритмы заполнения полигонов
+1. **Алгоритм растровой развертки с упорядоченным списком ребер**:
+   - Ребра полигона сортируются по координате Y.
+   - Для каждой строки растра определяются пересечения с ребрами и заполняются пиксели между точками пересечения.
+
+2. **Алгоритм растровой развертки с использованием списка активных ребер**:
+   - Поддерживается список активных ребер (AEL), которые пересекают текущую строку растра.
+   - Для каждой строки растра обновляется AEL, и заполняются пиксели между точками пересечения.
+
+3. **Простой алгоритм заполнения с затравкой**:
+   - Начиная с заданной точки (затравки), заполняются все соседние пиксели, пока не встретится граница полигона.
+
+4. **Построчный алгоритм заполнения с затравкой**:
+   - Заполнение происходит построчно, начиная с затравки. Для каждой строки определяются границы заполнения, что позволяет уменьшить количество рекурсивных вызовов.
+
+### Режим отладки
+Режим отладки позволяет визуализировать пошаговое выполнение алгоритмов, что помогает понять их работу и выявить возможные ошибки.
+
+## Скриншоты программы
+![image](https://github.com/user-attachments/assets/e4c384c0-d05a-4d33-a2a1-39856e36ffa2)
+
+## Листинг кода
+
+### Алгоритм растровой развертки с упорядоченным списком ребер
+```python
+def scanline_fill(self, fill_color=BLUE):
+    min_y = min(point.y for point in self.points)
+    max_y = max(point.y for point in self.points)
+    filled_points = []
+
+    for y in range(min_y, max_y + 1):
+        intersections = []
+        for point1, point2 in zip(self.points, self.points[1:] + [self.points[0]]):  # Обход по ребрам
+            x1, y1 = point1.x, point1.y
+            x2, y2 = point2.x, point2.y
+
+            if y1 == y2:
+                continue
+
+            if min(y1, y2) <= y < max(y1, y2):
+                x = x1 + (y - y1) * (x2 - x1) / (y2 - y1)
+                intersections.append(x)
+
+        intersections.sort()
+
+        for i in range(0, len(intersections) - 1, 2):
+            x_start = round(intersections[i])
+            x_end = round(intersections[i + 1])
+
+            for x in range(x_start, x_end + 1):
+                filled_points.append(Point(x, y, color=fill_color))
+
+    return filled_points
+```
+
+### Алгоритм растровой развертки с использованием списка активных ребер
+```python
+def active_edge_fill(self, fill_color=RED):
+    min_y = min(point.y for point in self.points)
+    max_y = max(point.y for point in self.points)
+    filled_points = []
+
+    edges = []
+    for point1, point2 in self:
+        if point1.y != point2.y:
+            edges.append((point1, point2))
+
+    edges.sort(key=lambda edge: min(edge[0].y, edge[1].y))
+
+    ael = []
+    current_y = min_y
+
+    while current_y <= max_y:
+        for edge in edges:
+            if min(edge[0].y, edge[1].y) == current_y:
+                ael.append(edge)
+
+        ael = [edge for edge in ael if max(edge[0].y, edge[1].y) > current_y]
+
+        ael.sort(key=lambda edge: edge[0].x + (current_y - edge[0].y) * (edge[1].x - edge[0].x) / (edge[1].y - edge[0].y))
+
+        for i in range(0, len(ael), 2):
+            x_start = int(ael[i][0].x + (current_y - ael[i][0].y) * (ael[i][1].x - ael[i][0].x) / (ael[i][1].y - ael[i][0].y))
+            x_end = int(ael[i + 1][0].x + (current_y - ael[i + 1][0].y) * (ael[i + 1][1].x - ael[i + 1][0].x) / (ael[i + 1][1].y - ael[i + 1][0].y))
+            for x in range(x_start, x_end + 1):
+                debug_info = {
+                    "current_y": current_y,
+                    "x_start": x_start,
+                    "x_end": x_end,
+                }
+                filled_points.append(Point(x, current_y, debug=debug_info, color=fill_color))
+
+        current_y += 1
+
+    return filled_points
+```
+
+### Простой алгоритм заполнения с затравкой
+```python
+def flood_fill(self, start_x, start_y, fill_color=GREEN):
+    filled_points = []
+    filled = set()
+    stack = [(start_x, start_y)]
+
+    while stack:
+        x, y = stack.pop()
+        if (x, y) not in filled and self.point_in_polygon(x, y):
+            debug_info = {
+                "in_poly?": self.point_in_polygon(x, y),
+                "x": x,
+                "y": y,
+            }
+            filled_points.append(Point(x, y, color=GREEN, debug=debug_info))
+            filled.add((x, y))
+            stack.append((x + 1, y))
+            stack.append((x - 1, y))
+            stack.append((x, y + 1))
+            stack.append((x, y - 1))
+
+    return filled_points
+```
+
+### Построчный алгоритм заполнения с затравкой
+```python
+def scanline_flood_fill(self, start_x, start_y, width, height, fill_color=YELLOW):
+    filled_points = []
+    filled = set()
+    stack = [(start_x, start_y)]
+
+    while stack:
+        x, y = stack.pop()
+        if (x, y) not in filled and self.point_in_polygon(x, y):
+            left = x
+            while left >= 0 and (left, y) not in filled and self.point_in_polygon(left, y):
+                debug_info = {
+                    "x=left": left,
+                    "y": y,
+                }
+                filled_points.append(Point(left, y, color=fill_color, debug=debug_info))
+                filled.add((left, y))
+                left -= 1
+            right = x + 1
+            while right < width and (right, y) not in filled and self.point_in_polygon(right, y):
+                debug_info = {
+                    "x=right": right,
+                    "y": y,
+                }
+                filled_points.append(Point(right, y, color=fill_color, debug=debug_info))
+                filled.add((right, y))
+                right += 1
+            for i in range(left + 1, right):
+                if y + 1 < height and (i, y + 1) not in filled and self.point_in_polygon(i, y + 1):
+                    stack.append((i, y + 1))
+                if y - 1 >= 0 and (i, y - 1) not in filled and self.point_in_polygon(i, y - 1):
+                    stack.append((i, y - 1))
+
+    return filled_points
+```
+
+## Выводы
+В ходе выполнения лабораторной работы был разработан элементарный графический редактор, который позволяет выполнять построение полигонов и их заполнение с использованием различных алгоритмов растровой развертки и заполнения с затравкой. Программа поддерживает режим отладки, что позволяет визуализировать пошаговое выполнение алгоритмов. Реализованные алгоритмы работают корректно и позволяют эффективно решать поставленные задачи.
+
+</details>

@@ -15,8 +15,7 @@ def jarvis_convex_hull(points: list[(int, int)]) -> list[Point]:
         for i in range(n):
             if i == p:
                 continue
-            val = (points[i][1] - points[p][1]) * (points[q][0] - points[p][0]) - \
-                  (points[q][1] - points[p][1]) * (points[i][0] - points[p][0])
+            val = (points[i][1] - points[p][1]) * (points[q][0] - points[p][0]) - (points[q][1] - points[p][1]) * (points[i][0] - points[p][0])
             if val < 0:
                 q = i
         p = q
