@@ -17,6 +17,8 @@ from second_order.algorithms.hyperbola import bresenham_hyperbola
 from second_order.algorithms.parabola import bresenham_parabola
 from d3d import ObjectViewer
 from utils import sort_points_clockwise, hex_color, Arrow
+import numpy as np
+import matplotlib.tri as tri
 
 
 class DrawerApp:
@@ -107,7 +109,6 @@ class DrawerApp:
         self.poly_menu.add_command(label="Построить выпуклую оболочку методом Graham", command=self.build_graham)
         self.poly_menu.add_command(label="Проверить линию", command=self.toggle_line_polygon_intersection)
         self.poly_menu.add_command(label="Проверить точку", command=self.toggle_point_in_poly_mode)
-        self.poly_menu.add_command(label="Проверить точку", command=self.toggle_point_in_poly_mode)
 
         # Add "Polygon Fill Algorithms" menu
         self.fill_menu = tk.Menu(self.menubar, tearoff=0)
@@ -122,6 +123,154 @@ class DrawerApp:
         # self.selected_fill_algorithm_label = tk.Label(self.root, text="Selected Fill Algorithm: Scanline", bg="white")
         # self.selected_fill_algorithm_label.pack(fill=tk.X)
         print(self.canvas.winfo_width())
+
+        self.voronoi_mode = False
+        self.voronoi_points = []
+
+        self.voronoi_menu = tk.Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label="Диаграмма Вороного", menu=self.voronoi_menu)
+        self.voronoi_menu.add_command(label="Нанести точки", command=self.toggle_voronoi)
+        self.voronoi_menu.add_command(label="Построить диаграмму Вороного", command=self.build_voronoi)
+
+    def toggle_voronoi(self):
+        self.voronoi_mode = not self.voronoi_mode
+        if self.voronoi_mode:
+            self.selected_algorithm_label.config(text="Режим точек Вороной.")
+            self.info_label.config(text="Кликните для задания точек.")
+
+    def build_voronoi(self):
+        # Генерация случайных точек
+        np.random.seed(49939)
+        points = np.random.rand(15, 2)
+
+        points = np.array([[x / self.width, y / self.height] for x, y in self.voronoi_points])
+
+        # Вычисление триангуляции Делоне
+        triang = tri.Triangulation(points[:, 0], points[:, 1])
+
+        # Вычисление центров окружностей
+        circumcenters = np.zeros((len(triang.triangles), 2))
+        for i, t in enumerate(triang.triangles):
+            pts = points[t]  # Вершины треугольника
+            A = np.column_stack((pts, np.ones(3)))  # Расширенная матрица
+            b = np.sum(pts ** 2, axis=1)
+            circumcenters[i] = np.linalg.solve(A, b)[:2] / 2  # Вычисление центра окружности
+
+        # Создание рёбер Вороного из соседей Делоне
+        voronoi_edges = []
+        infinite_edges = []
+
+        # Определение окна (x_min, y_min, x_max, y_max)
+        window = (0, 0, 1, 1)
+
+        def line_segment_intersection(p1, p2, p3, p4):
+            """Находит точку пересечения двух отрезков p1p2 и p3p4."""
+
+            def ccw(A, B, C):
+                return (C[1] - A[1]) * (B[0] - A[0]) - (B[1] - A[1]) * (C[0] - A[0])
+
+            A, B, C, D = p1, p2, p3, p4
+            ccw1 = ccw(A, B, C)
+            ccw2 = ccw(A, B, D)
+            ccw3 = ccw(C, D, A)
+            ccw4 = ccw(C, D, B)
+
+            if ((ccw1 * ccw2 < 0) and (ccw3 * ccw4 < 0)):
+                # Линии пересекаются
+                t = ccw3 / (ccw3 - ccw4)
+                intersection = A + t * (B - A)
+                return intersection
+            return None
+
+        def find_intersection_with_window(edge, window):
+            """Находит точку пересечения ребра с границами окна."""
+            p1, p2 = edge
+            x_min, y_min, x_max, y_max = window
+
+            # Границы окна
+            borders = [
+                ((x_min, y_min), (x_max, y_min)),  # Нижняя граница
+                ((x_max, y_min), (x_max, y_max)),  # Правая граница
+                ((x_max, y_max), (x_min, y_max)),  # Верхняя граница
+                ((x_min, y_max), (x_min, y_min))  # Левая граница
+            ]
+
+            for border in borders:
+                intersection = line_segment_intersection(p1, p2, border[0], border[1])
+                if intersection is not None:
+                    return intersection
+            return None
+
+        def choose_correct_infinite_edge(infinite_edges, circumcenter, window):
+            """Выбирает infinite_edge, который пересекает границу окна раньше."""
+            intersections = []
+            for edge in infinite_edges:
+                intersection = find_intersection_with_window(edge, window)
+                if intersection is not None:
+                    intersections.append((edge, intersection))
+
+            # Выбираем ребро с ближайшей точкой пересечения
+            def distance(p1, p2):
+                return np.linalg.norm(np.array(p1) - np.array(p2))
+
+            if not intersections:
+                return infinite_edges[0]
+            closest_edge = min(intersections, key=lambda x: distance(circumcenter, x[1]))
+            return closest_edge[0]
+
+        # Define the window (x_min, y_min, x_max, y_max)
+        window = (0, 0, 1, 1)
+
+        for i, t in enumerate(triang.triangles):
+            for j in range(3):
+                neighbor = triang.neighbors[i][j]
+                if neighbor != -1:
+                    # Finite Voronoi edges
+                    c1, c2 = circumcenters[i], circumcenters[neighbor]
+                    voronoi_edges.append((c1, c2))
+                else:
+
+                    # correct_edge = choose_correct_infinite_edge([(circumcenters[i], far_point), (circumcenters[i], alt_far_point)], circumcenters[i], window)
+
+                    pass
+                    # Infinite Voronoi edge
+                    p1, p2 = points[t[j]], points[t[(j + 1) % 3]]
+                    midpoint = (p1 + p2) / 2
+                    direction = midpoint - circumcenters[i]
+                    alt_direction = direction * -1
+                    direction /= np.linalg.norm(direction)
+                    alt_direction /= np.linalg.norm(alt_direction)
+                    far_point = circumcenters[i] + direction * 2  # Extend outward
+                    alt_far_point = circumcenters[i] + alt_direction * 2  # Extend outward
+                    # infinite_edges.append((circumcenters[i], far_point))
+                    correct_edge = choose_correct_infinite_edge(
+                        [(circumcenters[i], far_point), (circumcenters[i], alt_far_point)], circumcenters[i], window)
+                    (x1, y1), (x2, y2) = correct_edge
+                    if (0 < x1 < 1) and (0 < y1 < 1):
+                        infinite_edges.append(correct_edge)
+
+        # Очистка холста перед отрисовкой
+        self.clear()
+
+        # Отрисовка конечных рёбер Вороного
+        for c1, c2 in voronoi_edges:
+            self.canvas.create_line(c1[0] * self.width, c1[1] * self.height,
+                                    c2[0] * self.width, c2[1] * self.height,
+                                    fill="blue", width=2)
+
+        # Отрисовка бесконечных рёбер Вороного
+        for c1, c2 in infinite_edges:
+            self.canvas.create_line(c1[0] * self.width, c1[1] * self.height,
+                                    c2[0] * self.width, c2[1] * self.height,
+                                    fill="blue", width=2, dash=(4, 2))
+
+        # Отрисовка исходных точек
+        for x, y in points:
+            self.canvas.create_oval(x * self.width - 3, y * self.height - 3,
+                                    x * self.width + 3, y * self.height + 3,
+                                    fill="red", outline="red")
+
+        self.voronoi_points.clear()
 
     def select_fill_algorithm(self, algorithm):
         return lambda: self.set_fill_algorithm(algorithm)
@@ -252,10 +401,6 @@ class DrawerApp:
             self.draw_points(points)
             if self.debug_mode:
                 draw_pixel_figure(points, "poly", self.polygon)
-        elif self.polygon_mode:
-            x, y = event.x, event.y
-            self.polygon_points.append((x, y))
-            self.canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="black")
         elif self.point_in_poly_mode:
             width = 6
             x, y = event.x, event.y
@@ -268,12 +413,21 @@ class DrawerApp:
                 tags="debug",
             )
             result = self.polygon.point_in_polygon(x, y)
+            self.point_in_poly_mode = False
             if result:
                 self.info_label.config(text="Точка пренадлежит полигону.")
                 return
             else:
                 self.info_label.config(text="Точка не пренадлежит полигону.")
                 return
+        elif self.voronoi_mode:
+            x, y = event.x, event.y
+            self.voronoi_points.append((x, y))
+            self.canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="black")
+        elif self.polygon_mode:
+            x, y = event.x, event.y
+            self.polygon_points.append((x, y))
+            self.canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="black")
         elif self.algorithm in second_order.algorithms.keys():
             self.start_point = (event.x, event.y)
             self.get_second_order_parameters()

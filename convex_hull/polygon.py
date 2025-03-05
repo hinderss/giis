@@ -76,6 +76,7 @@ class Polygon:
                 return False
         return True
 
+    # Построчное заполнение
     def scanline_fill(self, fill_color=BLUE):
         min_y = min(point.y for point in self.points)
         max_y = max(point.y for point in self.points)
@@ -105,6 +106,7 @@ class Polygon:
 
         return filled_points
 
+    # Активные ребра
     def active_edge_fill(self, fill_color=RED):
         min_y = min(point.y for point in self.points)
         max_y = max(point.y for point in self.points)
@@ -144,6 +146,7 @@ class Polygon:
 
         return filled_points
 
+    # Заливка
     def flood_fill(self, start_x, start_y, fill_color=GREEN):
         filled_points = []
         filled = set()
@@ -167,6 +170,7 @@ class Polygon:
 
         return filled_points
 
+    # Построчная заливка
     def scanline_flood_fill(self, start_x, start_y, width, height, fill_color=YELLOW):
         filled_points = []
         filled = set()

@@ -906,3 +906,88 @@ def scanline_flood_fill(self, start_x, start_y, width, height, fill_color=YELLOW
 В ходе выполнения лабораторной работы был разработан элементарный графический редактор, который позволяет выполнять построение полигонов и их заполнение с использованием различных алгоритмов растровой развертки и заполнения с затравкой. Программа поддерживает режим отладки, что позволяет визуализировать пошаговое выполнение алгоритмов. Реализованные алгоритмы работают корректно и позволяют эффективно решать поставленные задачи.
 
 </details>
+
+
+# Лабораторная работа №7
+
+<details>  
+  <summary>Раскрыть описание лабораторной работы</summary>
+
+## Цель работы
+Целью данной лабораторной работы является разработка графической программы, которая выполняет триангуляцию Делоне и строит диаграмму Вороного по заданному набору точек. Это позволит изучить основы вычислительной геометрии и применение этих методов в практических задачах.
+
+## Задание
+Разработать графическую программу, выполняющую триангуляцию Делоне и построение диаграммы Вороного по заданному набору точек.
+
+## Основные теоретические сведения
+### Триангуляция Делоне
+Триангуляция Делоне — это разбиение множества точек на плоскости на треугольники таким образом, что ни одна точка не попадает внутрь описанной окружности любого треугольника. Это обеспечивает максимальную равномерность треугольников и минимизирует "острые" углы.
+
+### Диаграмма Вороного
+Диаграмма Вороного — это разбиение плоскости на области (ячейки), где каждая ячейка соответствует одной точке из заданного множества. Все точки внутри ячейки ближе к соответствующей точке, чем к любой другой точке из множества.
+
+## Скриншоты программы
+
+## Листинг кода
+
+### Алгоритм
+```python
+    def build_voronoi(self):
+        points = np.array([[x / self.width, y / self.height] for x, y in self.voronoi_points])
+
+        triang = tri.Triangulation(points[:, 0], points[:, 1])
+        circumcenters = np.zeros((len(triang.triangles), 2))
+        for i, t in enumerate(triang.triangles):
+            pts = points[t]
+            A = np.column_stack((pts, np.ones(3)))
+            b = np.sum(pts ** 2, axis=1)
+            circumcenters[i] = np.linalg.solve(A, b)[:2] / 2
+
+        voronoi_edges = []
+        infinite_edges = []
+
+        window = (0, 0, 1, 1)
+
+        for i, t in enumerate(triang.triangles):
+            for j in range(3):
+                neighbor = triang.neighbors[i][j]
+                if neighbor != -1:
+                    c1, c2 = circumcenters[i], circumcenters[neighbor]
+                    voronoi_edges.append((c1, c2))
+                else:
+                    p1, p2 = points[t[j]], points[t[(j + 1) % 3]]
+                    midpoint = (p1 + p2) / 2
+                    direction = midpoint - circumcenters[i]
+                    alt_direction = direction * -1
+                    direction /= np.linalg.norm(direction)
+                    alt_direction /= np.linalg.norm(alt_direction)
+                    far_point = circumcenters[i] + direction * 2  # Extend outward
+                    alt_far_point = circumcenters[i] + alt_direction * 2  # Extend outward
+                    correct_edge = choose_correct_infinite_edge(
+                        [(circumcenters[i], far_point), (circumcenters[i], alt_far_point)], circumcenters[i], window)
+                    (x1, y1), (x2, y2) = correct_edge
+                    if (0 < x1 < 1) and (0 < y1 < 1):
+                        infinite_edges.append(correct_edge)
+        self.clear()
+        for c1, c2 in voronoi_edges:
+            self.canvas.create_line(c1[0] * self.width, c1[1] * self.height,
+                                    c2[0] * self.width, c2[1] * self.height,
+                                    fill="blue", width=2)
+
+        for c1, c2 in infinite_edges:
+            self.canvas.create_line(c1[0] * self.width, c1[1] * self.height,
+                                    c2[0] * self.width, c2[1] * self.height,
+                                    fill="blue", width=2, dash=(4, 2))
+
+        for x, y in points:
+            self.canvas.create_oval(x * self.width - 3, y * self.height - 3,
+                                    x * self.width + 3, y * self.height + 3,
+                                    fill="red", outline="red")
+
+        self.voronoi_points.clear()
+```
+
+## Выводы
+В ходе выполнения лабораторной работы была разработана программа, которая успешно выполняет триангуляцию Делоне и строит диаграмму Вороного для заданного набора точек. Это позволило на практике изучить и применить методы вычислительной геометрии, что является важным навыком для решения задач, связанных с анализом и визуализацией данных.
+
+</details>
